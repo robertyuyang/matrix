@@ -69,7 +69,6 @@ def StatFilesChars(file_list, output_result_file_path):
     result_file_object = open(output_result_file_path, 'w')
     print(output_result_file_path + ' does not exits')
 
-  print(start_num)
   
   for i in range(0, 26):
     s = chr(ord('a')+i)
@@ -139,6 +138,8 @@ def CharDictLoadFromFile(char_dict_file_path, output_char_dict):
     output_char_dict[s] = kandv[1]
 
 def ToMatrix(file_list, char_dict_file_path, result_file_path):
+
+  print('ToMaritx %d files' % len(file_list))
   result_file_object = open(result_file_path, 'w')
   char_dict = {}
   CharDictLoadFromFile('char.txt', char_dict)
@@ -161,16 +162,12 @@ def ToMatrix(file_list, char_dict_file_path, result_file_path):
         max_line_width = len(line)
       l = list(line)
       for s in l:
-        print(s)
-        print(char_dict[s])
         output_matrix_row.append(char_dict[s])
-      print(output_matrix_row)
       output_matrix.append(output_matrix_row)
 
     output_text = ''
     for row in output_matrix:
       count = len(row)
-      print(count)
       for i in range(0, max_line_width):
         if i < count:
           if i == 0:
