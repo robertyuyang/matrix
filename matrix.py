@@ -52,47 +52,70 @@ def WalkFiles(input_dir, file_list):
 
 def StatFilesChars(file_list, output_result_file_path):
 
-  result_file_object = open(output_result_file_path, 'w')
-
+  result_file_object = None
   char_dict = {}
-  start_num = 100
+  start_num = 0
+  file_exist = False
+  
+  if os.path.exists(output_result_file_path):
+    CharDictLoadFromFile(output_result_file_path, char_dict)
+    result_file_object = open(output_result_file_path, 'a')
+    file_exist = True
+    start_num = 1000
+    print(output_result_file_path + ' exits')
+  else:
+    start_num = 100
+    file_exist = False 
+    result_file_object = open(output_result_file_path, 'w')
+    print(output_result_file_path + ' does not exits')
+
+  print(start_num)
+  
   for i in range(0, 26):
     s = chr(ord('a')+i)
-    char_dict[s] = start_num
-    result_file_object.write(s + '\t' + str(char_dict[s]) + '\n')
-    start_num = start_num +1
-  
-  start_num = 200
+    if not s in char_dict:
+      char_dict[s] = start_num
+      result_file_object.write(s + '\t' + str(char_dict[s]) + '\n')
+      start_num = start_num +1
+ 
+
+  if not file_exist:
+    start_num = 200
   for i in range(0, 26):
     s = chr(ord('A')+i)
-    char_dict[s] = start_num
-    result_file_object.write(s + '\t' + str(char_dict[s]) + '\n')
-    start_num = start_num +1
+    if not s in char_dict:
+      char_dict[s] = start_num
+      result_file_object.write(s + '\t' + str(char_dict[s]) + '\n')
+      start_num = start_num +1
 
-  start_num = 300
+  if not file_exist:
+    start_num = 300
   for i in range(0, 10):
     s = str(i)
-    char_dict[s] = start_num
-    result_file_object.write(s + '\t' + str(char_dict[s]) + '\n')
-    start_num = start_num +1
+    if not s in char_dict:
+      char_dict[s] = start_num
+      result_file_object.write(s + '\t' + str(char_dict[s]) + '\n')
+      start_num = start_num +1
  
   #for k,v in char_dict.items():
   #  print(k)
-  
-  start_num = 500
+ 
+
+  if not file_exist:
+    start_num = 500
   for file_path in file_list:
     file_object = open(file_path, 'r')
     try:
       text = file_object.read( )
       l = list(text)
       for s in l:
-        if s == '\n':
-          s = '\\n'
-        if s == '\t':
-          s = '\\t'
         if not s in char_dict:
           char_dict[s] = start_num
-          result_file_object.write(s + '\t' + str(char_dict[s]) + '\n')
+          if s == '\n':
+            s = '\\n'
+          if s == '\t':
+            s = '\\t'
+          result_file_object.write(s + '\t' + str(start_num) + '\n')
           start_num = start_num + 1
     finally:
       file_object.close( )
