@@ -142,12 +142,17 @@ def ToMatrix(file_list, char_dict_file_path, result_file_path):
   result_file_object = open(result_file_path, 'w')
   char_dict = {}
   CharDictLoadFromFile('char.txt', char_dict)
- 
   
   for file_path in file_list:
     print(file_path)
     input_file_object = open(file_path, 'r')
-    output_file_object = open(file_path + '_matrix', 'w')
+
+
+    dir_name = "output_" + os.path.basename(os.path.dirname(file_path))
+    file_name = os.path.basename(file_path)
+    if not os.path.exists(dir_name):
+      os.mkdir(dir_name)
+    output_file_object = open(dir_name + "\\" + file_name + "_matrix", 'w')
     output_matrix = []
     max_line_width = 0
     for line in input_file_object:
@@ -156,6 +161,8 @@ def ToMatrix(file_list, char_dict_file_path, result_file_path):
         max_line_width = len(line)
       l = list(line)
       for s in l:
+        print(s)
+        print(char_dict[s])
         output_matrix_row.append(char_dict[s])
       print(output_matrix_row)
       output_matrix.append(output_matrix_row)
