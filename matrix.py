@@ -143,7 +143,28 @@ def ToMatrix(file_list, char_dict_file_path, result_file_path):
   result_file_object = open(result_file_path, 'w')
   char_dict = {}
   CharDictLoadFromFile('char.txt', char_dict)
-  
+ 
+
+
+  max_line_width = 0
+  max_line_count = 0
+  for file_path in file_list:
+    input_file_object = open(file_path, 'r')
+
+
+    lines = input_file_object.readlines()
+    if len(lines) > max_line_count:
+      max_line_count = len(lines)
+
+    for line in lines:
+      if len(line) > max_line_width:
+        max_line_width = len(line)
+    input_file_object.close()
+
+
+  print('max line width: %d' % max_line_width)
+  print('max line count: %d' % max_line_count)
+
   for file_path in file_list:
     print(file_path)
     input_file_object = open(file_path, 'r')
@@ -155,21 +176,30 @@ def ToMatrix(file_list, char_dict_file_path, result_file_path):
       os.mkdir(dir_name)
     output_file_object = open(dir_name + "\\" + file_name + "_matrix", 'w')
     output_matrix = []
-    max_line_width = 0
     for line in input_file_object:
       output_matrix_row = []
-      if len(line) > max_line_width:
-        max_line_width = len(line)
       l = list(line)
       for s in l:
         output_matrix_row.append(char_dict[s])
       output_matrix.append(output_matrix_row)
 
     output_text = ''
-    for row in output_matrix:
-      count = len(row)
+
+    row_count = len(output_matrix)
+    for row_index in range(0, max_line_count):
+      if row_index >= row_count:
+        for i in range(0, max_line_width):
+          if i == 0:
+            output_text = output_text + '-1'
+          else:
+            output_text = output_text + ',' + '-1'
+        output_text = output_text + '\n'
+        continue 
+      
+      row = output_matrix[row_index]
+      row_width = len(row)
       for i in range(0, max_line_width):
-        if i < count:
+        if i < row_width:
           if i == 0:
             output_text = output_text + row[i]
           else:
@@ -180,6 +210,7 @@ def ToMatrix(file_list, char_dict_file_path, result_file_path):
      
     output_file_object.write(output_text)
     output_file_object.close()
+    input_file_object.close()
 
 
 
