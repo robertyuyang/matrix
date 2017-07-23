@@ -2,7 +2,6 @@ import cgi
 import copy
 import sys
 import getopt
-import html.parser
 import re
 import os
 import io
@@ -170,7 +169,7 @@ def ToMatrix(file_list, char_dict_file_path, result_file_path):
     input_file_object = open(file_path, 'r')
 
 
-    dir_name = "output_" + os.path.basename(os.path.dirname(file_path))
+    dir_name = "Output_" + os.path.basename(os.path.dirname(file_path))
     file_name = os.path.basename(file_path)
     if not os.path.exists(dir_name):
       os.mkdir(dir_name)
