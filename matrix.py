@@ -2,7 +2,6 @@ import cgi
 import copy
 import sys
 import getopt
-import html.parser
 import re
 import os
 import io
