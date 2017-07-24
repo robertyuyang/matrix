@@ -1,1 +1,6 @@
-python matrix.py --input_dir="R:\work\py\Code Snippet Repository\Readable\Buse_Top"
+python matrix.py --input_dir="W:\OneDrive\shared\Matrix\Code Snippet Repository\Readable\Buse_Top"
+python matrix.py --input_dir="W:\OneDrive\shared\Matrix\Code Snippet Repository\Readable\Dorn_Top"
+python matrix.py --input_dir="W:\OneDrive\shared\Matrix\Code Snippet Repository\Readable\Scalabrino_Top"
+python matrix.py --input_dir="W:\OneDrive\shared\Matrix\Code Snippet Repository\unreadable\Buse_Bottom"
+python matrix.py --input_dir="W:\OneDrive\shared\Matrix\Code Snippet Repository\unreadable\Dorn_Bottom"
+python matrix.py --input_dir="W:\OneDrive\shared\Matrix\Code Snippet Repository\unreadable\Scalabrino_Bottom"
