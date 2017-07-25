@@ -1,6 +1,1 @@
-python matrix.py --input_dir="..\Code Snippet Repository\Readable\Buse_Top"
-python matrix.py --input_dir="..\Code Snippet Repository\Readable\Dorn_Top"
-python matrix.py --input_dir="..\Code Snippet Repository\Readable\Scalabrino_Top"
-python matrix.py --input_dir="..\Code Snippet Repository\Unreadable\Buse_Bottom"
-python matrix.py --input_dir="..\Code Snippet Repository\Unreadable\Dorn_Bottom"
-python matrix.py --input_dir="..\Code Snippet Repository\Unreadable\Scalabrino_Bottom"
+python matrix.py --input_dir="..\Code Snippet Repository"

@@ -38,15 +38,18 @@ def ParseArgs(args):
 
 
 def WalkFiles(input_dir, file_list):
+  print(input_dir)
   for parent,dirnames,filenames in os.walk(input_dir):
-    #for dirname in  dirnames:                    
+    for dirname in  dirnames:     
+      print("the full name of the dir is:" + os.path.join(parent,dirname))
+      WalkFiles(os.path.join(parent, dirname), file_list)
       #print("parent is:" + parent)
       #print("dirname is" + dirname)
  
     for filename in filenames:                        
       #print("parent is:" + parent)
       #print("filename is:" + filename)
-      #print("the full name of the file is:" + os.path.join(parent,filename))
+      print("the full name of the file is:" + os.path.join(parent,filename))
       file_list.append(os.path.join(parent,filename))
 
 def StatFilesChars(file_list, output_result_file_path):
