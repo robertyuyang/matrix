@@ -242,3 +242,5 @@ if (__name__ == '__main__'):
   else:
     Matrix()
 
+    #e.sub(r'<([^<>]*)>', '', content)
+
