@@ -107,6 +107,7 @@ null	1102
 >>>=	1321
 ===Uncategorized===
 Comment	1400
-Identifier	1500
+VariableName	1500
+FunctionName	1501
 Number	1600
 String	1700
