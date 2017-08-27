@@ -147,6 +147,7 @@ def CharDictLoadFromFile(char_dict_file_path, output_char_dict):
       s = '\n'
     if s == '\\t':
       s = '\t'
+    print s
     output_char_dict[s] = kandv[1]
 
 def Extra(count):
@@ -158,6 +159,18 @@ def Extra(count):
 def XmlTransfer(file_list, char_dict_file_path, result_file_path):
   char_dict = {}
   CharDictLoadFromFile(char_dict_file_path, char_dict)
+
+
+  for k, v in char_dict.items():
+    char_dict[k] = char_dict[k] + ','
+
+  format_char_dict = {}
+  format_char_dict[' '] = char_dict.pop(' ')
+  format_char_dict['\n'] = char_dict.pop('\n')
+  format_char_dict['\t'] = char_dict.pop('\t')
+
+  speical_char_dict = {}
+  speical_char_dict[','] = char_dict.pop(',')
 
   max_line_width = 0
   max_line_count = 0
@@ -182,15 +195,11 @@ def XmlTransfer(file_list, char_dict_file_path, result_file_path):
       content = content[0: len(content) - 1]
     content = re.sub(r'<\?xml([^<>]*)?>\n', '', content)#remove xml head
 
-    for k, v in char_dict.items():
-      char_dict[k] = char_dict[k] + ','
 
-    format_char_dict = {}
-    format_char_dict[' '] = char_dict.pop(' ')
-    format_char_dict['\n'] = char_dict.pop('\n')
-    format_char_dict['\t'] = char_dict.pop('\t')
 
-    content = content.replace(',', char_dict.pop(','))
+
+
+    content = content.replace(',', speical_char_dict[','])
 
     content = re.sub(r'<name>([^<>]*)</name>', '<name>'+char_dict["Identifier"]+'</name>', content)
 
@@ -199,6 +208,7 @@ def XmlTransfer(file_list, char_dict_file_path, result_file_path):
                      lambda m:'<type><name>'+char_dict["Identifier"]+'</name></type>'+m.group(3) +'<name>'+char_dict["Identifier"]+'</name>', content)
 
     content = re.sub(r'<argument_list>\(\)</argument_list>', '<argument_list>'+char_dict["("] + char_dict[")"] + '</argument_list>', content)
+    content = re.sub(r'<parameter_list>\(\)</parameter_list>', '<parameter_list>'+char_dict["("] + char_dict[")"] + '</parameter_list>', content)
     '''
     #replace function name
     content = re.sub(r'<name>([^<>]*)</name><parameter_list>', '<name>'+char_dict["FunctionName"]+'</name><parameter_list>', content)
