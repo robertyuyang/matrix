@@ -1,8 +1,6 @@
-===White Space===
 \t	9
 \n	10
  	32
-===Keywords===
 abstract	1000
 assert	1001
 boolean	1002
@@ -53,11 +51,9 @@ try	1046
 void	1047
 volatile	1048
 while	1049
-===Literals===
 true	1100
 false	1101
 null	1102
-===Separators===
 (	40
 )	41
 ,	44
@@ -67,7 +63,6 @@ null	1102
 ]	93
 {	123
 }	125
-===Operators===
 !	33
 %	37
 &	38
@@ -105,8 +100,10 @@ null	1102
 <<=	1319
 >>=	1320
 >>>=	1321
-===Uncategorized===
 Comment	1400
-Identifier	1500
+FunctionName	1500
+TypeName	1510
+VariableName	1520
+Identifier	1550
 Number	1600
 String	1700
