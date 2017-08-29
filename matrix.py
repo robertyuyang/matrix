@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import cgi
 import copy
 import sys
@@ -11,8 +12,10 @@ import time
 
 _input_dir = None
 _stat = None
+_javachar = None
 _xmlword = None
 _xmlelement = None
+_xmlwordascii = None
 _char_dict = []
 
 
@@ -24,7 +27,9 @@ def ParseArgs(args):
     (opts, filenames) = getopt.getopt(args, '', ['help',
                                                  'input_dir=',
                                                  'stat',
+                                                 'javachar',
                                                  'xmlword',
+                                                 'xmlwordascii',
                                                  'xmlelement'
                                                  ])
   except getopt.GetoptError:
@@ -42,6 +47,12 @@ def ParseArgs(args):
     elif opt == '--xmlword':
       global _xmlword
       _xmlword = True
+    elif opt == '--javachar':
+      global _javachar
+      _javachar = True
+    elif opt == '--xmlwordascii':
+      global _xmlascii
+      _xmlascii = True
     elif opt == '--xmlelement':
       global _xmlelement
       _xmlelement = True
@@ -156,7 +167,7 @@ def Extra(count):
     result += '-1,'
   return result
 
-def XmlTransfer(file_list, char_dict_file_path, result_file_path):
+def XmlTransfer(file_list, char_dict_file_path, to_ascii):
   char_dict = {}
   CharDictLoadFromFile(char_dict_file_path, char_dict)
 
@@ -198,12 +209,7 @@ def XmlTransfer(file_list, char_dict_file_path, result_file_path):
     content = content.replace(',', speical_char_dict[','])
 
 
-    #replace gerenic type
-    content = re.sub(r'<type><name>((?!<type>).)*<argument_list((?!<type>).)*</name></type>(\s+)<name>([^d][^<>]*)</name>',
-                     lambda m:'<type><name>'+char_dict["Identifier"]+'</name></type>'+m.group(3) +'<name>'+char_dict["Identifier"]+'</name>', content)
 
-    content = re.sub(r'<argument_list>\(\)</argument_list>', '<argument_list>'+char_dict["("] + char_dict[")"] + '</argument_list>', content)
-    content = re.sub(r'<parameter_list>\(\)</parameter_list>', '<parameter_list>'+char_dict["("] + char_dict[")"] + '</parameter_list>', content)
     '''
     #replace function name
     content = re.sub(r'<name>([^<>]*)</name><parameter_list>', '<name>'+char_dict["FunctionName"]+'</name><parameter_list>', content)
@@ -234,31 +240,55 @@ def XmlTransfer(file_list, char_dict_file_path, result_file_path):
     '''
 
 
-    #replace literal
-    content =re.sub(r'<literal type="string">([^<>]*)</literal>', '<literal type="string">'+char_dict["String"]+'</literal>', content)
-    content =re.sub(r'<literal type="number">([^<>]*)</literal>', '<literal type="number">'+char_dict["Number"]+'</literal>', content)
 
+    #replace ()
+    content = re.sub(r'<argument_list>\(\)</argument_list>',
+                     '<argument_list>' + char_dict["("] + char_dict[")"] + '</argument_list>', content)
+    content = re.sub(r'<parameter_list>\(\)</parameter_list>',
+                     '<parameter_list>' + char_dict["("] + char_dict[")"] + '</parameter_list>', content)
     #replace =
     content = re.sub(r'<init>=', '<init>'+char_dict['='], content)
-    #replace comment
-    content = re.sub(r'<comment([^<>]*)>([^<>]*)</comment>', lambda m:'<comment'+m.group(1)+'>'+char_dict["Comment"]+'</comment>', content)
     #replace throws
     content = re.sub(r'<throws>throws', '<throws>'+ char_dict['throws'], content)
 
     for k in ['if', 'else', 'for', 'while', 'throw']:
       content = content.replace(r'<'+k+'>' + k , r'<'+k+'>'+ char_dict[k])
+    for k in ['try', 'catch', 'finally', 'return']:
+      content = re.sub('>' + k + r'(\s+)<', lambda m:'>' + char_dict[k] + m.group(1) + '<', content)
     content = re.sub(r'<block>{', '<block>' + char_dict["{"], content)
     content = re.sub(r'}</block>', char_dict["}"] + '<block>', content)
 
+
+    #顺序很重要，先替换所有非空格\t的关键字，这样会先过滤掉所有自定义类型，然后先转泛型类型（这里需要匹配\s所以前面不能转空格和\t,再转所有name里的，最后把空格\t转掉
     for k,v in char_dict.items():
       content = content.replace(r'>' + k +'<', '>' + v +'<')
+
+
+
+
+    # replace gerenic type
+    content = re.sub(
+      r'<type><name>((?!<type>).)*<argument_list((?!<type>).)*</name></type>(\s+)<name>([^d][^<>]*)</name>',
+      lambda m: '<type><name>' + char_dict["Identifier"] + '</name></type>' + m.group(3) + '<name>' + char_dict[
+        "Identifier"] + '</name>', content)
+
+    #replace idenfifer
+    content = re.sub(r'<name>([^<>,]*)</name>', '<name>'+char_dict["Identifier"]+'</name>', content)
+
+
+    # replace literal
+    content = re.sub(r'<literal type="string">([^<>]*)</literal>',
+                     '<literal type="string">' + char_dict["String"] + '</literal>', content)
+    content = re.sub(r'<literal type="number">([^<>]*)</literal>',
+                     '<literal type="number">' + char_dict["Number"] + '</literal>', content)
+    #replace comment
+    content = re.sub(r'<comment([^<>]*)>([^<>]*)</comment>', lambda m:'<comment'+m.group(1)+'>'+char_dict["Comment"]+'</comment>', content)
+
+
 
     #replace sapce \n \t
     for k,v in format_char_dict.items():
       content = content.replace(r'>' + k +'<', '>' + v +'<')
-
-
-    content = re.sub(r'<name>([^<>,]*)</name>', '<name>'+char_dict["Identifier"]+'</name>', content)
 
     midcontent = content;
 
@@ -319,10 +349,9 @@ def XmlTransfer(file_list, char_dict_file_path, result_file_path):
 
 
 
-def ToMatrix(file_list, char_dict_file_path, result_file_path):
+def ToMatrix(file_list, char_dict_file_path):
 
   print('ToMaritx %d files' % len(file_list))
-  result_file_object = open(result_file_path, 'w')
   char_dict = {}
   CharDictLoadFromFile(char_dict_file_path, char_dict)
 
@@ -422,10 +451,20 @@ if (__name__ == '__main__'):
   ParseArgs(sys.argv[1:])
 
   #global _stat
+
+  global _input_dir
+  rootdir = _input_dir
+  file_list = []
+  WalkFiles(rootdir, file_list)
   if _stat:
     Stat()
-  else:
-    Matrix()
+  elif _javachar:
+    ToMatrix(file_list, 'char.txt')
+  elif _xmlword:
+    XmlTransfer(file_list, 'word.txt', False)
+  elif _xmlwordascii:
+    XmlTransfer(file_list, 'word.txt',  True)
+  #elif _xmlelement:
 
     #re.sub(r'<([^<>]*)>', '', content)
 
