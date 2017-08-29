@@ -195,13 +195,8 @@ def XmlTransfer(file_list, char_dict_file_path, result_file_path):
       content = content[0: len(content) - 1]
     content = re.sub(r'<\?xml([^<>]*)?>\n', '', content)#remove xml head
 
-
-
-
-
     content = content.replace(',', speical_char_dict[','])
 
-    content = re.sub(r'<name>([^<>]*)</name>', '<name>'+char_dict["Identifier"]+'</name>', content)
 
     #replace gerenic type
     content = re.sub(r'<type><name>((?!<type>).)*<argument_list((?!<type>).)*</name></type>(\s+)<name>([^d][^<>]*)</name>',
@@ -233,15 +228,15 @@ def XmlTransfer(file_list, char_dict_file_path, result_file_path):
 
     # replace varible in expr (i = 0)
     content = re.sub(r'<expr><name>([^<>]*)</name>', '<expr><name>' + char_dict['VariableName'] + '</name>', content)
+    # replace throws type
+    content = re.sub(r'<expr><name>([^<>]*)</name></expr>', '<expr><name>' + char_dict["TypeName"] + '</name></expr>',
+                     content)
     '''
 
 
     #replace literal
     content =re.sub(r'<literal type="string">([^<>]*)</literal>', '<literal type="string">'+char_dict["String"]+'</literal>', content)
     content =re.sub(r'<literal type="number">([^<>]*)</literal>', '<literal type="number">'+char_dict["Number"]+'</literal>', content)
-    # replace throws type
-    content = re.sub(r'<expr><name>([^<>]*)</name></expr>', '<expr><name>' + char_dict["TypeName"] + '</name></expr>',
-                     content)
 
     #replace =
     content = re.sub(r'<init>=', '<init>'+char_dict['='], content)
@@ -257,17 +252,13 @@ def XmlTransfer(file_list, char_dict_file_path, result_file_path):
 
     for k,v in char_dict.items():
       content = content.replace(r'>' + k +'<', '>' + v +'<')
-      '''
-      if k == '(' or k == '[' or k == ')':
-        k = '\\' + k
-      if k == '++':
-        k = r'\+\+'
-      print k
-      content = re.sub(r'>' + k +r'(\s+)<', lambda m:'>' + v + (m.group(1) if (m.group(1) is not None) else '') +'<', content)
-      '''
+
     #replace sapce \n \t
     for k,v in format_char_dict.items():
       content = content.replace(r'>' + k +'<', '>' + v +'<')
+
+
+    content = re.sub(r'<name>([^<>,]*)</name>', '<name>'+char_dict["Identifier"]+'</name>', content)
 
     midcontent = content;
 
