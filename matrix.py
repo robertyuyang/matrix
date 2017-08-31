@@ -51,8 +51,8 @@ def ParseArgs(args):
       global _javachar
       _javachar = True
     elif opt == '--xmlwordascii':
-      global _xmlascii
-      _xmlascii = True
+      global _xmlwordascii
+      _xmlwordascii = True
     elif opt == '--xmlelement':
       global _xmlelement
       _xmlelement = True
@@ -167,6 +167,21 @@ def Extra(count):
     result += '-1,'
   return result
 
+def Ascii(content):
+  result = ''
+  for c in content:
+    result += str(ord(c)) + ','
+  return result
+
+def XmlAscii(content):
+  content = re.sub(r'<([^<>]*)>', '', content)
+  content = re.sub(r'&lt;', '<', content)
+  content = re.sub(r'&gt;', '>', content)
+  result = ''
+  for c in content:
+    result += str(ord(c)) + ','
+  return result
+
 def XmlTransfer(file_list, char_dict_file_path, to_ascii):
   char_dict = {}
   CharDictLoadFromFile(char_dict_file_path, char_dict)
@@ -205,6 +220,18 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
     if content.endswith('\n'):
       content = content[0: len(content) - 1]
     content = re.sub(r'<\?xml([^<>]*)?>\n', '', content)#remove xml head
+
+
+
+
+    if to_ascii:
+      # replace gerenic type
+      gerenic_type_reg = re.compile(
+        r'<type><name>((?!<type>).*<argument_list(?!<type>).*)</name></type>(\s+)<name>([^d][^<>]*)</name>')
+      if gerenic_type_reg.search(content):
+        content = gerenic_type_reg.sub(
+          lambda m: '<type><name>' + XmlAscii(m.group(1)) + '</name></type>' + m.group(2) + '<name>' + Ascii(
+            m.group(3)) + '</name>', content)
 
     content = content.replace(',', speical_char_dict[','])
 
@@ -259,30 +286,53 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
     content = re.sub(r'}</block>', char_dict["}"] + '<block>', content)
 
 
-    #顺序很重要，先替换所有非空格\t的关键字，这样会先过滤掉所有自定义类型，然后先转泛型类型（这里需要匹配\s所以前面不能转空格和\t,再转所有name里的，最后把空格\t转掉
-    for k,v in char_dict.items():
-      content = content.replace(r'>' + k +'<', '>' + v +'<')
+    #顺序很重要，先替换泛型类型，避免泛型类型中的原始类型先被替换，再替换所有非空格\t的关键字，这样会先过滤掉所有自定义类型，,再转所有name里的(包括自定义类型），最后把空格\t转掉
+
+    if not to_ascii:
+      # replace gerenic type
+      content = re.sub(
+        r'<type><name>((?!<type>).)*<argument_list((?!<type>).)*</name></type>(\s+)<name>([^d][^<>]*)</name>',
+        lambda m: '<type><name>' + char_dict["Identifier"] + '</name></type>' + m.group(3) + '<name>' + char_dict[
+          "Identifier"] + '</name>', content)
+
+      for k,v in char_dict.items():
+        content = content.replace(r'>' + k +'<', '>' + v +'<')
+
+      # replace idenfifer
+      content = re.sub(r'<name>([^<>,]*)</name>', '<name>' + char_dict["Identifier"] + '</name>', content)
+
+      # replace literal
+      content = re.sub(r'<literal type="string">([^<>]*)</literal>',
+                       '<literal type="string">' + char_dict["String"] + '</literal>', content)
+      content = re.sub(r'<literal type="number">([^<>]*)</literal>',
+                       '<literal type="number">' + char_dict["Number"] + '</literal>', content)
+      # replace comment
+      content = re.sub(r'<comment([^<>]*)>([^<>]*)</comment>',
+                       lambda m: '<comment' + m.group(1) + '>' + char_dict["Comment"] + '</comment>', content)
+    else:
+      # replace gerenic type
+      '''
+      gerenic_type_reg = re.compile(r'<type><name>((?!<type>).*<argument_list(?!<type>).*)</name></type>(\s+)<name>([^d][^<>]*)</name>')
+      if gerenic_type_reg.search(content):
+
+        content = gerenic_type_reg.sub(
+         lambda m: '<type><name>' + XmlAscii(m.group(1)) + '</name></type>' + m.group(2) + '<name>' + Ascii(m.group(3)) + '</name>', content)
+      '''
+
+      for k,v in char_dict.items():
+        content = content.replace(r'>' + k +'<', '>' + v +'<')
+
+      #replace idenfifer
+      content = re.sub(r'<name>([^<>,]*)</name>', lambda m:'<name>'+Ascii(m.group(1))+'</name>', content)
 
 
-
-
-    # replace gerenic type
-    content = re.sub(
-      r'<type><name>((?!<type>).)*<argument_list((?!<type>).)*</name></type>(\s+)<name>([^d][^<>]*)</name>',
-      lambda m: '<type><name>' + char_dict["Identifier"] + '</name></type>' + m.group(3) + '<name>' + char_dict[
-        "Identifier"] + '</name>', content)
-
-    #replace idenfifer
-    content = re.sub(r'<name>([^<>,]*)</name>', '<name>'+char_dict["Identifier"]+'</name>', content)
-
-
-    # replace literal
-    content = re.sub(r'<literal type="string">([^<>]*)</literal>',
-                     '<literal type="string">' + char_dict["String"] + '</literal>', content)
-    content = re.sub(r'<literal type="number">([^<>]*)</literal>',
-                     '<literal type="number">' + char_dict["Number"] + '</literal>', content)
-    #replace comment
-    content = re.sub(r'<comment([^<>]*)>([^<>]*)</comment>', lambda m:'<comment'+m.group(1)+'>'+char_dict["Comment"]+'</comment>', content)
+      # replace literal
+      content = re.sub(r'<literal type="string">([^<>]*)</literal>',
+                       lambda m: '<literal type="string">' + Ascii(m.group(1)) + '</literal>', content)
+      content = re.sub(r'<literal type="number">([^<>]*)</literal>',
+                       lambda m: '<literal type="number">' + Ascii(m.group(1)) + '</literal>', content)
+      #replace comment
+      content = re.sub(r'<comment([^<>]*)>([^<>]*)</comment>', lambda m:'<comment'+m.group(1)+'>'+ Ascii(m.group(2))+'</comment>', content)
 
 
 
@@ -452,7 +502,6 @@ if (__name__ == '__main__'):
 
   #global _stat
 
-  global _input_dir
   rootdir = _input_dir
   file_list = []
   WalkFiles(rootdir, file_list)
