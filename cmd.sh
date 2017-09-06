@@ -1,4 +1,4 @@
-python matrix.py --input_dir="..\Code Snippet Repository"
-python matrix.py - --input_dir="outputxml" --xmlword
-python matrix.py - --input_dir="outputxml" --xmlwordascii
-python matrix.py - --input_dir="outputxml" --xmlelement
+python matrix.py --input_dir="src" --javachar
+python matrix.py --input_dir="srcxml" --xmlword
+python matrix.py --input_dir="srcxml" --xmlwordascii
+python matrix.py --input_dir="srcxml" --xmlelement

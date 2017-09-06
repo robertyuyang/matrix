@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
-import cgi
-import copy
 import sys
 import getopt
 import re
 import os
-import io
-import time
-
+import errno
 
 
 _input_dir = None
@@ -62,15 +58,15 @@ def WalkFiles(input_dir, file_list):
   print(input_dir)
   for parent,dirnames,filenames in os.walk(input_dir):
     for dirname in  dirnames:
-      #print("the full name of the dir is:" + os.path.join(parent,dirname))
-      WalkFiles(os.path.join(parent, dirname), file_list)
+      print("the full name of the dir is:" + os.path.join(parent,dirname))
+      #WalkFiles(os.path.join(parent, dirname), file_list)
       #print("parent is:" + parent)
       #print("dirname is" + dirname)
 
     for filename in filenames:
       #print("parent is:" + parent)
       #print("filename is:" + filename)
-      #print("the full name of the file is:" + os.path.join(parent,filename))
+      print("the full name of the file is:" + os.path.join(parent,filename))
       file_list.append(os.path.join(parent,filename))
 
 def StatFilesChars(file_list, output_result_file_path):
@@ -158,7 +154,7 @@ def CharDictLoadFromFile(char_dict_file_path, output_char_dict):
       s = '\n'
     if s == '\\t':
       s = '\t'
-    print s
+    #print s
     output_char_dict[s] = kandv[1]
 
 def Extra(count):
@@ -201,16 +197,20 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
   max_line_width = 0
   max_line_count = 0
 
+  '''
   dir_name = "xmlencode_" + os.path.basename(os.path.dirname(file_list[0]))
-  matrix_dir_name = "wordmatrix_" + os.path.basename(os.path.dirname(file_list[0]))
+  matrix_dir_name_prefix = "output_xmlword" + ("ascii_" if to_ascii else "_")
+  matrix_dir_name = matrix_dir_name_prefix + os.path.basename(os.path.dirname(file_list[0]))
   if not os.path.exists(dir_name):
     os.mkdir(dir_name)
   if not os.path.exists(matrix_dir_name):
     os.mkdir(matrix_dir_name)
+  '''
   encode_file_list = []
 
   for file_path in file_list:
     if not file_path.endswith('.xml'):
+      print '%s not a xml' % file_path
       continue;
     input_file_object = open(file_path, 'r')
     content = input_file_object.read()
@@ -357,7 +357,7 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
         max_line_width = len(line.split(','))
 
     file_name = os.path.basename(file_path)
-    output_file_path = os.path.join(dir_name , file_name + ".txt")
+    output_file_path = ReplaceRootDir(file_path, 'output_word_encoded_%s' % ('ascii' if to_ascii else ''))
     output_file_object = open(output_file_path, 'w')
     output_file_object.write(content)
     output_file_object.close()
@@ -387,11 +387,15 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
     for i in range(0, extra_row_count):
       output_content += Extra(max_line_width) + '\n'
 
-    file_name = os.path.basename(file_path)
-    output_file_path = os.path.join(matrix_dir_name , file_name + "_wordmatrix.txt")
+    #file_name = os.path.basename(file_path)
+    #output_file_path = os.path.join(matrix_dir_name , file_name + ".matrix")
+
+    output_file_path = ReplaceRootDir(file_path, 'output_word%s' % ('ascii' if to_ascii else '')) + '.matrix'
     output_file_object = open(output_file_path, 'w')
+    #output_file_object = open(output_file_path, 'w')
     output_file_object.write(output_content)
     output_file_object.close()
+    print output_file_path +' written.'
 
 
   print('max line width: %d' % max_line_width)
@@ -421,14 +425,16 @@ def XmlElementTransfer(file_list, char_dict_file_path):
   max_line_width = 0
   max_line_count = 0
 
+  '''
   dir_name = "xmlelementencode_" + os.path.basename(os.path.dirname(file_list[0]))
-  matrix_dir_name = "elementmatrix_" + os.path.basename(os.path.dirname(file_list[0]))
+  matrix_dir_name = "output_xmlelement_" + os.path.basename(os.path.dirname(file_list[0]))
   if not os.path.exists(dir_name):
     os.mkdir(dir_name)
   if not os.path.exists(matrix_dir_name):
     os.mkdir(matrix_dir_name)
-  encode_file_list = []
+  '''
 
+  encode_file_list = []
   for file_path in file_list:
     if not file_path.endswith('.xml'):
       continue;
@@ -465,8 +471,9 @@ def XmlElementTransfer(file_list, char_dict_file_path):
       if len(line.split(',')) > max_line_width:
         max_line_width = len(line.split(','))
 
-    file_name = os.path.basename(file_path)
-    output_file_path = os.path.join(dir_name , file_name + ".txt")
+    #file_name = os.path.basename(file_path)
+    #output_file_path = os.path.join(dir_name , file_name)
+    output_file_path = ReplaceRootDir(file_path, 'output_element_encoded')
     output_file_object = open(output_file_path, 'w')
     output_file_object.write(content)
     output_file_object.close()
@@ -476,7 +483,7 @@ def XmlElementTransfer(file_list, char_dict_file_path):
     #output_file_object_mid = open(os.path.join(dir_name , file_name + "_wordmatrix_mid.java"), 'w')
     #output_file_object_mid.write(midcontent)
 
-    print file_path + 'encoded.'
+    print file_path + ' encoded.'
 
   for file_path in encode_file_list:
 
@@ -496,11 +503,12 @@ def XmlElementTransfer(file_list, char_dict_file_path):
     for i in range(0, extra_row_count):
       output_content += Extra(max_line_width) + '\n'
 
-    file_name = os.path.basename(file_path)
-    output_file_path = os.path.join(matrix_dir_name , file_name + "_elementmatrix.txt")
+
+    output_file_path = ReplaceRootDir(file_path, 'output_element')+ '.matrix'
     output_file_object = open(output_file_path, 'w')
     output_file_object.write(output_content)
     output_file_object.close()
+    print output_file_path + ' written.'
 
 
   print('max line width: %d' % max_line_width)
@@ -521,8 +529,11 @@ def ToMatrix(file_list, char_dict_file_path):
   max_line_width = 0
   max_line_count = 0
 
-  '''
+
   for file_path in file_list:
+    if not file_path.endswith('.java'):
+      continue;
+
     input_file_object = open(file_path, 'r')
 
 
@@ -538,25 +549,33 @@ def ToMatrix(file_list, char_dict_file_path):
 
   print('max line width: %d' % max_line_width)
   print('max line count: %d' % max_line_count)
-  '''
+
+
   for file_path in file_list:
     print(file_path)
-    if not file_path.endswith('.xml'):
+    if not file_path.endswith('.java'):
       continue;
     input_file_object = open(file_path, 'r')
 
+    output_file_object = open(ReplaceRootDir(file_path, 'output_javachar') + '.matrix', 'w')
 
-    dir_name = "Output_" + os.path.basename(os.path.dirname(file_path))
+    '''
+    if not os.path.exists("output_javachar"):
+      os.mkdir("output_javachar")
+    dir_name = os.path.join("output_javachar" , os.path.basename(os.path.dirname(file_path)))
     file_name = os.path.basename(file_path)
     if not os.path.exists(dir_name):
       os.mkdir(dir_name)
-    output_file_object = open(dir_name + "\\" + file_name + "_matrix", 'w')
+    output_file_object = open(os.path.join(dir_name ,  file_name + ".matrix" ),'w')
+    '''
 
     output_matrix = []
     for line in input_file_object:
       output_matrix_row = []
       l = list(line)
       for s in l:
+        if s == '\r':
+          continue
         output_matrix_row.append(char_dict[s])
       output_matrix.append(output_matrix_row)
 
@@ -582,16 +601,33 @@ def ToMatrix(file_list, char_dict_file_path):
           else:
             output_text = output_text + ',' + row[i]
         else:
-          output_text = output_text + ',' + '1'
+          output_text = output_text + ',' + '-1'
       output_text = output_text + '\n'
 
     output_file_object.write(output_text)
     output_file_object.close()
     input_file_object.close()
 
+def mkdir_p(path):
+  try:
+    os.makedirs(path)
+  except OSError as exc:  # Python >2.5 (except OSError, exc: for Python <2.5)
+    if exc.errno == errno.EEXIST and os.path.isdir(path):
+      pass
+    else:
+      raise
 
-
-
+def ReplaceRootDir(file_path, dir_name):
+  ar = file_path.split(os.sep)
+  if ar[0] == '.':
+    ar = ar[1:]
+  ar[0] = dir_name
+  new_file_path = '.'
+  for p in ar:
+    new_file_path = os.path.join(new_file_path, p)
+  if not os.path.exists(os.path.dirname(new_file_path)):
+    mkdir_p(os.path.dirname(new_file_path))
+  return os.path.splitext(new_file_path)[0]
 
 def Stat():
   global _input_dir
@@ -616,6 +652,7 @@ if (__name__ == '__main__'):
   rootdir = _input_dir
   file_list = []
   WalkFiles(rootdir, file_list)
+
   if _stat:
     Stat()
   elif _javachar:
@@ -629,9 +666,9 @@ if (__name__ == '__main__'):
 
     #re.sub(r'<([^<>]*)>', '', content)
 
+'''
 
-
-def ToMatrix(file_list, char_dict_file_path):
+def ToMatrix0(file_list, char_dict_file_path):
 
   print('ToMaritx %d files' % len(file_list))
   char_dict = {}
@@ -642,24 +679,7 @@ def ToMatrix(file_list, char_dict_file_path):
   max_line_width = 0
   max_line_count = 0
 
-  '''
-  for file_path in file_list:
-    input_file_object = open(file_path, 'r')
-
-
-    lines = input_file_object.readlines()
-    if len(lines) > max_line_count:
-      max_line_count = len(lines)
-
-    for line in lines:
-      if len(line) > max_line_width:
-        max_line_width = len(line)
-    input_file_object.close()
-
-
-  print('max line width: %d' % max_line_width)
-  print('max line count: %d' % max_line_count)
-  '''
+  
   for file_path in file_list:
     print(file_path)
     if not file_path.endswith('.xml'):
@@ -671,7 +691,7 @@ def ToMatrix(file_list, char_dict_file_path):
     file_name = os.path.basename(file_path)
     if not os.path.exists(dir_name):
       os.mkdir(dir_name)
-    output_file_object = open(dir_name + "\\" + file_name + "_matrix", 'w')
+    output_file_object = open(dir_name + "\\" + file_name + ".matrix", 'w')
 
     output_matrix = []
     for line in input_file_object:
@@ -749,3 +769,4 @@ if (__name__ == '__main__'):
 
     #re.sub(r'<([^<>]*)>', '', content)
 
+'''
