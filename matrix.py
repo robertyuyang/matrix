@@ -357,7 +357,7 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
         max_line_width = len(line.split(','))
 
     file_name = os.path.basename(file_path)
-    output_file_path = ReplaceRootDir(file_path, 'output_word_encoded_%s' % ('ascii' if to_ascii else ''))
+    output_file_path = ReplaceRootDir(file_path, 'mitoutput_word_encoded_%s' % ('ascii' if to_ascii else ''))
     output_file_object = open(output_file_path, 'w')
     output_file_object.write(content)
     output_file_object.close()
@@ -411,28 +411,12 @@ def XmlElementTransfer(file_list, char_dict_file_path):
   for k, v in char_dict.items():
     char_dict[k] = char_dict[k] + ','
 
-  '''
-  format_char_dict = {}
-  format_char_dict[' '] = char_dict.pop(' ')
-  format_char_dict['\n'] = char_dict.pop('\n')
-  format_char_dict['\t'] = char_dict.pop('\t')
 
-  speical_char_dict = {}
-  speical_char_dict[','] = char_dict.pop(',')
-
-  '''
 
   max_line_width = 0
   max_line_count = 0
 
-  '''
-  dir_name = "xmlelementencode_" + os.path.basename(os.path.dirname(file_list[0]))
-  matrix_dir_name = "output_xmlelement_" + os.path.basename(os.path.dirname(file_list[0]))
-  if not os.path.exists(dir_name):
-    os.mkdir(dir_name)
-  if not os.path.exists(matrix_dir_name):
-    os.mkdir(matrix_dir_name)
-  '''
+
 
   encode_file_list = []
   for file_path in file_list:
@@ -447,7 +431,7 @@ def XmlElementTransfer(file_list, char_dict_file_path):
       content = content[0: len(content) - 1]
     content = re.sub(r'<\?xml([^<>]*)?>\n', '', content)#remove xml head
 
-    for k in [',',' ','{','}','(',')','&gt;','&lt;',';']:
+    for k in [',',' ','\t','{','}','(',')','&gt;','&lt;',';']:
       content = content.replace(k, '')
 
     for k in char_dict:
@@ -458,9 +442,10 @@ def XmlElementTransfer(file_list, char_dict_file_path):
 
     for k in char_dict:
       content = re.sub(r'<' +k +'>', char_dict[k], content)
+    content = content.replace('class', char_dict['class'])
 
 
-    content = content.replace('\n', str(ord('\n'))+ '\n')
+    content = content.replace('\n', str(ord('\n')) +','+ '\n')
 
     content = re.sub(r'<([^<>]*)>', '', content)
 
@@ -473,7 +458,7 @@ def XmlElementTransfer(file_list, char_dict_file_path):
 
     #file_name = os.path.basename(file_path)
     #output_file_path = os.path.join(dir_name , file_name)
-    output_file_path = ReplaceRootDir(file_path, 'output_element_encoded')
+    output_file_path = ReplaceRootDir(file_path, 'midoutput_element_encoded')
     output_file_object = open(output_file_path, 'w')
     output_file_object.write(content)
     output_file_object.close()
@@ -602,7 +587,7 @@ def ToMatrix(file_list, char_dict_file_path):
             output_text = output_text + ',' + row[i]
         else:
           output_text = output_text + ',' + '-1'
-      output_text = output_text + '\n'
+      output_text = output_text + ',\n'
 
     output_file_object.write(output_text)
     output_file_object.close()
