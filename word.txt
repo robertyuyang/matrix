@@ -108,3 +108,4 @@ VariableName	1520
 Identifier	1550
 Number	1600
 String	1700
+Annotation	1800

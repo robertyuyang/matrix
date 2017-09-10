@@ -284,7 +284,11 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
       content = re.sub('>' + k + r'(\s+)<', lambda m:'>' + char_dict[k] + m.group(1) + '<', content)
     content = re.sub(r'<block>{', '<block>' + char_dict["{"], content)
     content = re.sub(r'}</block>', char_dict["}"] + '<block>', content)
-
+    content = re.sub(r'<import>import', '<import>'+char_dict['import'], content)
+    content = re.sub(r'<condition>\(', '<condition>'+char_dict['('], content)
+    content = re.sub(r'\)</condition>', char_dict[')']+ '</condition>', content)
+    content = re.sub(r'<elseif>else', '<elseif>'+char_dict['else'], content)
+    content = re.sub(r'<annotation>@<name>Override</name></annotation>', char_dict['Annotation'], content)
 
     #顺序很重要，先替换泛型类型，避免泛型类型中的原始类型先被替换，再替换所有非空格\t的关键字，这样会先过滤掉所有自定义类型，,再转所有name里的(包括自定义类型），最后把空格\t转掉
 
@@ -306,6 +310,8 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
                        '<literal type="string">' + char_dict["String"] + '</literal>', content)
       content = re.sub(r'<literal type="number">([^<>]*)</literal>',
                        '<literal type="number">' + char_dict["Number"] + '</literal>', content)
+      content = re.sub(r'<literal type="char">([^<>]*)</literal>',
+                       lambda m: '<literal type="char">' + char_dict["String"] + '</literal>', content)
       # replace comment
       content = re.sub(r'<comment([^<>]*)>([^<>]*)</comment>',
                        lambda m: '<comment' + m.group(1) + '>' + char_dict["Comment"] + '</comment>', content)
@@ -331,6 +337,9 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
                        lambda m: '<literal type="string">' + Ascii(m.group(1)) + '</literal>', content)
       content = re.sub(r'<literal type="number">([^<>]*)</literal>',
                        lambda m: '<literal type="number">' + Ascii(m.group(1)) + '</literal>', content)
+      content = re.sub(r'<literal type="char">([^<>]*)</literal>',
+                       lambda m: '<literal type="char">' + Ascii(m.group(1)) + '</literal>', content)
+      #replace comment
       #replace comment
       content = re.sub(r'<comment([^<>]*)>([^<>]*)</comment>', lambda m:'<comment'+m.group(1)+'>'+ Ascii(m.group(2))+'</comment>', content)
 
