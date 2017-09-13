@@ -84,6 +84,9 @@ null	1102
 !=	1303
 &&	1304
 &amp;&amp;	1304
+&amp;	38
+&lt;	60
+&gt;	62
 ||	1305
 ++	1306
 --	1307
@@ -109,3 +112,4 @@ Identifier	1550
 Number	1600
 String	1700
 Annotation	1800
+Unknown	9999

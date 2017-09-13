@@ -12,7 +12,11 @@ _javachar = None
 _xmlword = None
 _xmlelement = None
 _xmlwordascii = None
+_validate = None
 _char_dict = []
+
+_invalidreg = re.compile(r'[^\,\-\d\n]')
+_invalidwordreg = re.compile(r'[^\,\-\d\n]+')
 
 
 def PrintUsage():
@@ -26,7 +30,8 @@ def ParseArgs(args):
                                                  'javachar',
                                                  'xmlword',
                                                  'xmlwordascii',
-                                                 'xmlelement'
+                                                 'xmlelement',
+                                                 'validate'
                                                  ])
   except getopt.GetoptError:
     PrintUsage('Invalid arguments.')
@@ -52,6 +57,9 @@ def ParseArgs(args):
     elif opt == '--xmlelement':
       global _xmlelement
       _xmlelement = True
+    elif opt == '--validate':
+      global  _validate
+      _validate = True
 
 
 def WalkFiles(input_dir, file_list):
@@ -288,8 +296,7 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
     content = re.sub(r'<condition>\(', '<condition>'+char_dict['('], content)
     content = re.sub(r'\)</condition>', char_dict[')']+ '</condition>', content)
     content = re.sub(r'<elseif>else', '<elseif>'+char_dict['else'], content)
-    content = re.sub(r'<annotation>@<name>Override</name></annotation>', char_dict['Annotation'], content)
-
+    content = re.sub(r'<annotation>@((?!<annotation>).)*</annotation>', char_dict['Annotation'], content, flags=re.M|re.S)
     #顺序很重要，先替换泛型类型，避免泛型类型中的原始类型先被替换，再替换所有非空格\t的关键字，这样会先过滤掉所有自定义类型，,再转所有name里的(包括自定义类型），最后把空格\t转掉
 
     if not to_ascii:
@@ -349,13 +356,20 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
     for k,v in format_char_dict.items():
       content = content.replace(r'>' + k +'<', '>' + v +'<')
 
-    midcontent = content;
-
-
     content = re.sub(r'<([^<>]*)>', '', content)
 
+    sorted_char_keys = sorted(char_dict, key=lambda d: len(d), reverse=True)
+    for k in sorted_char_keys:
+      content = content.replace(k, char_dict[k])
     for k in [' ', '\t']:
       content = content.replace(k, format_char_dict[k])
+
+    global _invalidwordreg
+    invalidwords = _invalidwordreg.findall(content)
+    if len(invalidwords) > 0:
+      print '>>>>>>>>>>>> some invalid words: '+str(invalidwords) + 'in file ' + file_path
+    content = _invalidwordreg.sub(char_dict['Unknown'], content)
+
     content = content.replace('\n', format_char_dict['\n'] + '\n')
 
     lines = content.split('\n')
@@ -405,6 +419,7 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
     output_file_object.write(output_content)
     output_file_object.close()
     print output_file_path +' written.'
+    Validate([output_file_path])
 
 
   print('max line width: %d' % max_line_width)
@@ -440,18 +455,18 @@ def XmlElementTransfer(file_list, char_dict_file_path):
       content = content[0: len(content) - 1]
     content = re.sub(r'<\?xml([^<>]*)?>\n', '', content)#remove xml head
 
-    for k in [',',' ','\t','{','}','(',')','&gt;','&lt;',';']:
-      content = content.replace(k, '')
+    content = re.sub(r'>([^<>]*)<', lambda m: '>' + re.sub(r'[^\n]', '', m.group(1)) + '<', content)
+    #for k in [',',' ','\t','{','}','(',')','&gt;','&lt;',';','[', ']', '?']:
+    #  content = content.replace(k, '')
 
     for k in char_dict:
-      content = re.sub(r'<'+k+r'([^<>]*)>([^<>]+)<', '<'+k+'><', content)
+      content = re.sub(r'<'+k+r'([^<>]*)>([^<>]*)<', '<'+k+'><', content)#remove text and attr
 
     for k in char_dict:
-      content = re.sub(r'</' +k +'>', '', content)
+      content = re.sub(r'</' +k +'>', '', content)#remove xml tail
 
     for k in char_dict:
       content = re.sub(r'<' +k +'>', char_dict[k], content)
-    content = content.replace('class', char_dict['class'])
 
 
     content = content.replace('\n', str(ord('\n')) +','+ '\n')
@@ -503,7 +518,7 @@ def XmlElementTransfer(file_list, char_dict_file_path):
     output_file_object.write(output_content)
     output_file_object.close()
     print output_file_path + ' written.'
-
+    Validate([output_file_path])
 
   print('max line width: %d' % max_line_width)
   print('max line count: %d' % max_line_count)
@@ -583,7 +598,7 @@ def ToMatrix(file_list, char_dict_file_path):
             output_text = output_text + '-1'
           else:
             output_text = output_text + ',' + '-1'
-        output_text = output_text + '\n'
+        output_text = output_text + ',\n'
         continue
 
       row = output_matrix[row_index]
@@ -637,6 +652,19 @@ def Matrix():
   WalkFiles(rootdir, file_list)
   XmlTransfer(file_list, 'word.txt', 'word_matrix.txt')
 
+
+
+def Validate(file_list):
+  for file_path in file_list:
+    if not file_path.endswith('.matrix'):
+      continue;
+    f = open(file_path)
+    content = f.read();
+    global  _invalidwordreg
+    ret = _invalidwordreg.findall(content)
+    if len(ret) > 0:
+      print '>>>>>>>>>>>>>>>>>>>>'+file_path + ' is invalid with ' + str(ret)
+
 if (__name__ == '__main__'):
   print ('start')
   ParseArgs(sys.argv[1:])
@@ -657,7 +685,9 @@ if (__name__ == '__main__'):
     XmlTransfer(file_list, 'word.txt',  True)
   elif _xmlelement:
     XmlElementTransfer(file_list, 'element.txt')
-
+  elif _validate:
+    print "---------VALIDATE-------------"
+    Validate(file_list)
     #re.sub(r'<([^<>]*)>', '', content)
 
 '''
