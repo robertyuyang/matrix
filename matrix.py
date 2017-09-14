@@ -174,7 +174,10 @@ def Extra(count):
 def Ascii(content):
   result = ''
   for c in content:
-    result += str(ord(c)) + ','
+    if c == '\n':
+      result += '\n'
+    else:
+      result += str(ord(c)) + ','
   return result
 
 def ItemCount(line):
@@ -361,7 +364,9 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
 
     #replace sapce \n \t
     for k,v in format_char_dict.items():
-      content = content.replace(r'>' + k +'<', '>' + v +'<')
+      if k != '\n':
+        content = content.replace(r'>' + k +'<', '>' + v +'<')
+
 
     content = re.sub(r'<([^<>]*)>', '', content)
 
