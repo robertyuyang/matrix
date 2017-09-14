@@ -177,6 +177,13 @@ def Ascii(content):
     result += str(ord(c)) + ','
   return result
 
+def ItemCount(line):
+  ar = line.split(',')
+  count = len(ar)
+  if ar[count - 1] == '':
+    count = count - 1
+  return count
+
 def XmlAscii(content):
   content = re.sub(r'<([^<>]*)>', '', content)
   content = re.sub(r'&lt;', '<', content)
@@ -376,8 +383,8 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
     if len(lines) > max_line_count:
       max_line_count = len(lines)
     for line in lines:
-      if len(line.split(',')) > max_line_width:
-        max_line_width = len(line.split(','))
+      if ItemCount(line) > max_line_width:
+        max_line_width = ItemCount(line)
 
     file_name = os.path.basename(file_path)
     output_file_path = ReplaceRootDir(file_path, 'mitoutput_word_encoded_%s' % ('ascii' if to_ascii else ''))
@@ -402,7 +409,7 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
 
     lines = content.split('\n')
     for line in lines:
-      extra_count = max_line_width - len(line.split(','))
+      extra_count = max_line_width - ItemCount(line)
       output_content += line + Extra(extra_count)
       output_content += '\n'
 
@@ -413,7 +420,7 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
     #file_name = os.path.basename(file_path)
     #output_file_path = os.path.join(matrix_dir_name , file_name + ".matrix")
 
-    output_file_path = ReplaceRootDir(file_path, 'output_word%s' % ('ascii' if to_ascii else '')) + '.matrix'
+    output_file_path = ReplaceRootDir(file_path, 'Word%s' % ('Char' if to_ascii else '')) + '.matrix'
     output_file_object = open(output_file_path, 'w')
     #output_file_object = open(output_file_path, 'w')
     output_file_object.write(output_content)
@@ -477,8 +484,8 @@ def XmlElementTransfer(file_list, char_dict_file_path):
     if len(lines) > max_line_count:
       max_line_count = len(lines)
     for line in lines:
-      if len(line.split(',')) > max_line_width:
-        max_line_width = len(line.split(','))
+      if ItemCount(line)  > max_line_width:
+        max_line_width =ItemCount(line)
 
     #file_name = os.path.basename(file_path)
     #output_file_path = os.path.join(dir_name , file_name)
@@ -504,7 +511,7 @@ def XmlElementTransfer(file_list, char_dict_file_path):
 
     lines = content.split('\n')
     for line in lines:
-      extra_count = max_line_width - len(line.split(','))
+      extra_count = max_line_width - ItemCount(line)
       output_content += line + Extra(extra_count)
       output_content += '\n'
 
@@ -513,7 +520,7 @@ def XmlElementTransfer(file_list, char_dict_file_path):
       output_content += Extra(max_line_width) + '\n'
 
 
-    output_file_path = ReplaceRootDir(file_path, 'output_element')+ '.matrix'
+    output_file_path = ReplaceRootDir(file_path, 'Node')+ '.matrix'
     output_file_object = open(output_file_path, 'w')
     output_file_object.write(output_content)
     output_file_object.close()
@@ -566,7 +573,7 @@ def ToMatrix(file_list, char_dict_file_path):
       continue;
     input_file_object = open(file_path, 'r')
 
-    output_file_object = open(ReplaceRootDir(file_path, 'output_javachar') + '.matrix', 'w')
+    output_file_object = open(ReplaceRootDir(file_path, 'Character') + '.matrix', 'w')
 
     '''
     if not os.path.exists("output_javachar"):
