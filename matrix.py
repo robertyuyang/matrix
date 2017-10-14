@@ -238,11 +238,21 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
     if content.endswith('\n'):
       content = content[0: len(content) - 1]
     content = re.sub(r'<\?xml([^<>]*)?>\n', '', content)#remove xml head
+    content = content.replace('\n</unit>','')#remove unit tail
 
 
-
-
-    if to_ascii:
+    if not to_ascii:
+      # replace literal
+      content = re.sub(r'<literal type="string">([^<>]*)</literal>',
+                       '<literal type="string">' + char_dict["String"] + '</literal>', content)
+      content = re.sub(r'<literal type="number">([^<>]*)</literal>',
+                       '<literal type="number">' + char_dict["Number"] + '</literal>', content)
+      content = re.sub(r'<literal type="char">([^<>]*)</literal>',
+                       lambda m: '<literal type="char">' + char_dict["String"] + '</literal>', content)
+      # replace comment
+      content = re.sub(r'<comment([^<>]*)>([^<>]*)</comment>',
+                       lambda m: '<comment' + m.group(1) + '>' + char_dict["Comment"] + '</comment>', content)
+    else :
       # replace gerenic type
       gerenic_type_reg = re.compile(
         r'<type><name>((?!<type>).*<argument_list(?!<type>).*)</name></type>(\s+)<name>([^d][^<>]*)</name>')
@@ -250,6 +260,18 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
         content = gerenic_type_reg.sub(
           lambda m: '<type><name>' + XmlAscii(m.group(1)) + '</name></type>' + m.group(2) + '<name>' + Ascii(
             m.group(3)) + '</name>', content)
+
+        # replace literal
+      content = re.sub(r'<literal type="string">([^<>]*)</literal>',
+                         lambda m: '<literal type="string">' + Ascii(m.group(1)) + '</literal>', content)
+      content = re.sub(r'<literal type="number">([^<>]*)</literal>',
+                         lambda m: '<literal type="number">' + Ascii(m.group(1)) + '</literal>', content)
+      content = re.sub(r'<literal type="char">([^<>]*)</literal>',
+                         lambda m: '<literal type="char">' + Ascii(m.group(1)) + '</literal>', content)
+      # replace comment
+      # replace comment
+      content = re.sub(r'<comment([^<>]*)>([^<>]*)</comment>',
+                         lambda m: '<comment' + m.group(1) + '>' + Ascii(m.group(2)) + '</comment>', content)
 
     content = content.replace(',', speical_char_dict[','])
 
@@ -322,16 +344,7 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
       # replace idenfifer
       content = re.sub(r'<name>([^<>,]*)</name>', '<name>' + char_dict["Identifier"] + '</name>', content)
 
-      # replace literal
-      content = re.sub(r'<literal type="string">([^<>]*)</literal>',
-                       '<literal type="string">' + char_dict["String"] + '</literal>', content)
-      content = re.sub(r'<literal type="number">([^<>]*)</literal>',
-                       '<literal type="number">' + char_dict["Number"] + '</literal>', content)
-      content = re.sub(r'<literal type="char">([^<>]*)</literal>',
-                       lambda m: '<literal type="char">' + char_dict["String"] + '</literal>', content)
-      # replace comment
-      content = re.sub(r'<comment([^<>]*)>([^<>]*)</comment>',
-                       lambda m: '<comment' + m.group(1) + '>' + char_dict["Comment"] + '</comment>', content)
+
     else:
       # replace gerenic type
       '''
@@ -349,16 +362,7 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
       content = re.sub(r'<name>([^<>,]*)</name>', lambda m:'<name>'+Ascii(m.group(1))+'</name>', content)
 
 
-      # replace literal
-      content = re.sub(r'<literal type="string">([^<>]*)</literal>',
-                       lambda m: '<literal type="string">' + Ascii(m.group(1)) + '</literal>', content)
-      content = re.sub(r'<literal type="number">([^<>]*)</literal>',
-                       lambda m: '<literal type="number">' + Ascii(m.group(1)) + '</literal>', content)
-      content = re.sub(r'<literal type="char">([^<>]*)</literal>',
-                       lambda m: '<literal type="char">' + Ascii(m.group(1)) + '</literal>', content)
-      #replace comment
-      #replace comment
-      content = re.sub(r'<comment([^<>]*)>([^<>]*)</comment>', lambda m:'<comment'+m.group(1)+'>'+ Ascii(m.group(2))+'</comment>', content)
+
 
 
 
@@ -387,11 +391,13 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
     lines = content.split('\n')
     if len(lines) > max_line_count:
       max_line_count = len(lines)
+
+      print file_path + ' ' + str(max_line_count)
     for line in lines:
       if ItemCount(line) > max_line_width:
         max_line_width = ItemCount(line)
+        print '%s max line %d' % (file_path, max_line_width)
 
-    file_name = os.path.basename(file_path)
     output_file_path = ReplaceRootDir(file_path, 'mitoutput_word_encoded_%s' % ('ascii' if to_ascii else ''))
     output_file_object = open(output_file_path, 'w')
     output_file_object.write(content)
@@ -402,7 +408,7 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
     #output_file_object_mid = open(os.path.join(dir_name , file_name + "_wordmatrix_mid.java"), 'w')
     #output_file_object_mid.write(midcontent)
 
-    print file_path + 'encoded.'
+    #print output_file_path + '   encoded.'
 
   for file_path in encode_file_list:
 
@@ -425,7 +431,8 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii):
     #file_name = os.path.basename(file_path)
     #output_file_path = os.path.join(matrix_dir_name , file_name + ".matrix")
 
-    output_file_path = ReplaceRootDir(file_path, 'Word%s' % ('Char' if to_ascii else '')) + '.matrix'
+    output_file_path = ReplaceRootDir(file_path, 'Word%s' % ('Char' if to_ascii else ''))
+    output_file_path = ReplaceExt(output_file_path, 'matrix')
     output_file_object = open(output_file_path, 'w')
     #output_file_object = open(output_file_path, 'w')
     output_file_object.write(output_content)
@@ -465,14 +472,18 @@ def XmlElementTransfer(file_list, char_dict_file_path):
     #remove \n in the end (dont know why there is a \n
     if content.endswith('\n'):
       content = content[0: len(content) - 1]
+
     content = re.sub(r'<\?xml([^<>]*)?>\n', '', content)#remove xml head
 
-    content = re.sub(r'>([^<>]*)<', lambda m: '>' + re.sub(r'[^\n]', '', m.group(1)) + '<', content)
+    content = re.sub(r'>([^<>]*)<', lambda m: '>' + re.sub(r'[^\n]', '', m.group(1)) + '<', content)#remove text without removing \n
     #for k in [',',' ','\t','{','}','(',')','&gt;','&lt;',';','[', ']', '?']:
     #  content = content.replace(k, '')
 
     for k in char_dict:
-      content = re.sub(r'<'+k+r'([^<>]*)>([^<>]*)<', '<'+k+'><', content)#remove text and attr
+      #content = re.sub(r'<'+k+r'([^<>]*)>([^<>\n]*)<', '<'+k+'><', content)#remove text and attr
+      content = re.sub(r'<'+k+r'([^<>]*)>', '<'+k+'>', content)#remove text and attr
+
+    open('test.java','w').write(content)
 
     for k in char_dict:
       content = re.sub(r'</' +k +'>', '', content)#remove xml tail
@@ -481,6 +492,7 @@ def XmlElementTransfer(file_list, char_dict_file_path):
       content = re.sub(r'<' +k +'>', char_dict[k], content)
 
 
+    content = content.replace('\n</unit>','')#remove unit tail
     content = content.replace('\n', str(ord('\n')) +','+ '\n')
 
     content = re.sub(r'<([^<>]*)>', '', content)
@@ -525,7 +537,8 @@ def XmlElementTransfer(file_list, char_dict_file_path):
       output_content += Extra(max_line_width) + '\n'
 
 
-    output_file_path = ReplaceRootDir(file_path, 'Node')+ '.matrix'
+    output_file_path = ReplaceRootDir(file_path, 'Node')
+    output_file_path = ReplaceExt(output_file_path, 'matrix')
     output_file_object = open(output_file_path, 'w')
     output_file_object.write(output_content)
     output_file_object.close()
@@ -565,6 +578,7 @@ def ToMatrix(file_list, char_dict_file_path):
     for line in lines:
       if len(line) > max_line_width:
         max_line_width = len(line)
+        print '%s max line %d' % (file_path, max_line_width)
     input_file_object.close()
 
 
@@ -578,7 +592,8 @@ def ToMatrix(file_list, char_dict_file_path):
       continue;
     input_file_object = open(file_path, 'r')
 
-    output_file_object = open(ReplaceRootDir(file_path, 'Character') + '.matrix', 'w')
+    output_file_path = ReplaceRootDir(file_path, 'Character') + '.matrix'
+    output_file_object = open(output_file_path, 'w')
 
     '''
     if not os.path.exists("output_javachar"):
@@ -589,7 +604,6 @@ def ToMatrix(file_list, char_dict_file_path):
       os.mkdir(dir_name)
     output_file_object = open(os.path.join(dir_name ,  file_name + ".matrix" ),'w')
     '''
-
     output_matrix = []
     for line in input_file_object:
       output_matrix_row = []
@@ -597,7 +611,11 @@ def ToMatrix(file_list, char_dict_file_path):
       for s in l:
         if s == '\r':
           continue
-        output_matrix_row.append(char_dict[s])
+        if char_dict.has_key(s):
+          output_matrix_row.append(char_dict[s])
+        else:
+          output_matrix_row.append(char_dict['unknown'])
+
       output_matrix.append(output_matrix_row)
 
     output_text = ''
@@ -628,6 +646,7 @@ def ToMatrix(file_list, char_dict_file_path):
     output_file_object.write(output_text)
     output_file_object.close()
     input_file_object.close()
+    #print output_file_path + ' written.'
 
 def mkdir_p(path):
   try:
@@ -648,7 +667,11 @@ def ReplaceRootDir(file_path, dir_name):
     new_file_path = os.path.join(new_file_path, p)
   if not os.path.exists(os.path.dirname(new_file_path)):
     mkdir_p(os.path.dirname(new_file_path))
-  return os.path.splitext(new_file_path)[0]
+  return new_file_path
+  #return os.path.splitext(new_file_path)[0]
+
+def ReplaceExt(file_path, ex):
+  return os.path.splitext(file_path)[0] + '.' + ex
 
 def Stat():
   global _input_dir
@@ -676,6 +699,7 @@ def Validate(file_list):
     ret = _invalidwordreg.findall(content)
     if len(ret) > 0:
       print '>>>>>>>>>>>>>>>>>>>>'+file_path + ' is invalid with ' + str(ret)
+      exit()
 
 if (__name__ == '__main__'):
   print ('start')
