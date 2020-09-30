@@ -18,6 +18,7 @@ _char_dict = []
 
 _invalidreg = re.compile(r'[^\,\-\d\n]')
 _invalidwordreg = re.compile(r'[^\,\-\d\n]+')
+_invalidcnt = 0
 
 def printf(fmt, *args):
   print(fmt % args)
@@ -207,6 +208,9 @@ def XmlAscii(content):
 def XmlWordOnelineTransfer(file_list, char_dict_file_path):
   char_dict = {}
   CharDictLoadFromFile(char_dict_file_path, char_dict)
+  ochar_dict = {}
+  ochar_dict['}'] = char_dict['}']
+  ochar_dict['{'] = char_dict['{']
 
   for k, v in char_dict.items():
     char_dict[k] = '{${'+ v + '}$}'
@@ -231,7 +235,7 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
 
   for file_path in file_list:
     if not file_path.endswith('.xml'):
-      print '%s not a xml' % file_path
+      #print '%s not a xml' % file_path
       continue;
     input_file_object = open(file_path, 'r')
     content = input_file_object.read()
@@ -243,6 +247,9 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
     content = re.sub(r'<\?xml([^<>]*)?>\n', '', content)#remove xml head
     content = content.replace('\n</unit>','')#remove unit tail
     content = re.sub(r'<unit([^<>]*)>','', content)#remove unit tail
+    content = re.sub(r'&lt;=', '<=', content)
+    content = re.sub(r'&gt;=', '>=', content)
+    content = re.sub(r'&amp;=', '&=', content)
 
     #replace package
     packagelines = re.findall(r'<package>package .*</package>', content)
@@ -257,6 +264,8 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
         newimportline = re.sub(r'<name>([^<$>]*)</name>','<name>'+char_dict["TypeName"]+'</name>',importline)
         newimportline = re.sub(r'<import>import', '<import>'+char_dict['import'],newimportline)
         content = content.replace(importline, newimportline)
+    content = content.replace('<name>from</name> <name>', '<name>%s</name> <name>' % (char_dict['from']))
+    content = re.sub('<name>import</name> <name>[^<>]+</name>', '<name>%s</name> <name>%s</name>' % (char_dict['import'], char_dict['TypeName']),content )
 
     # replace literal
     content = content.replace(r'<literal type="null">null</literal>',
@@ -276,10 +285,15 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
                      lambda m: '<comment' + m.group(1) + '>' + char_dict["Comment"] + '</comment>', content)
 
 
+    if file_path.endswith('Dorn177.xml'):
+      print('this')
+    #interface
+    content = re.sub(r'>(\s*)interface(\s*)<name>[^<>]+</name>', lambda m:'>'+m.group(1) + char_dict['interface'] + m.group(2) + '<name>'+char_dict['TypeName']+'</name>', content)
     #replace class
     content = re.sub(r'>(\s*)(class)(\s*)<name>([^<$>]+)</name>',
                      lambda  m:'>'+ m.group(1) + char_dict['class']+ m.group(3) + '<name>'+char_dict["TypeName"]+'</name>', content)
     content = content.replace('<implements>implements', '<implements>'+char_dict['implements'])
+    content = content.replace('<extends>extends', '<extends>'+char_dict['extends'])
     content = re.sub('<super><name>([^<$>]+)</name></super>', '<super><name>'+char_dict['TypeName']+'<super><name>',content)
 
 
@@ -292,12 +306,21 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
     #transfer generic type to type
     content = re.sub(r'<name><name>([^<$>]*)</name><argument_list type="generic">&lt;((?!argument_list).)*&gt;</argument_list></name>',
                      lambda m:'<name>'+m.group(1)+'</name>', content) #does not replace with typename, cos it'll be used later
+    content = re.sub(r'<name><name>([^<$>]*)</name><argument_list type="generic">&lt;((?!argument_list).)*&gt;</argument_list></name>',
+                     lambda m:'<name>'+m.group(1)+'</name>', content) #does not replace with typename, cos it'll be used later
+    #replace java.a.b.c.class
+    content = re.sub('<expr><name>(<name>[^ \,]*</name>)</name></expr>',
+           lambda m: '<expr><name>' + re.sub('<name>([^<>]*)</name>', '<name>' + char_dict['TypeName'] + '</name>', m.group(1)) + '</name></expr>', content)
 
 
     #replace function name
+    for k in ['public', 'private']:
+      content = content.replace(k+' <function>', char_dict[k]+' <function>')
     #re.sub(r'<name>([^<$>]*)</name><parameter_list>', lambda m:printf('func:'+m.group(1)), content)
     content = re.sub(r'<name>([^<$>]*)</name></type>(\s+)<name>([^<$>]*)</name><parameter_list>',
                      lambda m: '<name>'+(char_dict['TypeName'] if m.group(1) not in char_dict else char_dict[m.group(1)])+'</name></type>' +m.group(2)+ '<name>'+char_dict["FunctionName"]+'</name><parameter_list>', content)
+    content = re.sub(r'(\s+)<name>([^<$>]*)</name><parameter_list>',
+                     lambda m: m.group(1) + '<name>'+char_dict["FunctionName"]+'</name><parameter_list>', content)
     #content = re.sub(r'<name>([^<$>]*)</name><parameter_list>', lambda m: '<name>'+char_dict["FunctionName"]+'</name><parameter_list>', content)
 
     #replace type and varible name(varible declaration)
@@ -324,20 +347,42 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
                      '<call><name><name>' + char_dict["VariableName"] + '</name><operator>.</operator><name>' +
                      char_dict["FunctionName"] + '</name></name>',
                      content);
+    content = re.sub(r'<call><name><name>([^<$>]*)</name><operator>.</operator><name>([^<$>]*)</name><operator>.</operator><name>([^<$>]*)</name></name>',
+                     '<call><name><name>' + char_dict["VariableName"] + '</name><operator>.</operator><name>' + char_dict["VariableName"] + '</name><operator>.</operator><name>' +
+                     char_dict["FunctionName"] + '</name></name>',
+                     content);
+    content = re.sub(
+      r'<call><name><name>([^<$>]*)</name><operator>\.</operator><name><name>class</name><operator>.</operator><name>([^<$>]*)</name></name></name>',
+      '<call><name><name>' + char_dict["TypeName"] + '</name><operator>.</operator><name><name>' + char_dict[
+        "class"] + '</name><operator>.</operator><name>' +
+      char_dict["FunctionName"] + '</name></name></name>',
+      content); #abc.class.func
+
     # replace member variable
     content = re.sub(r'<name><name>([^<$>]*)</name><operator>.</operator><name>([^<$>]*)</name></name>',
                      '<name><name>' + char_dict["VariableName"] + '</name><operator>.</operator><name>' +
                      char_dict["VariableName"] + '</name></name>',
-                     content);
+                     content);#a.mNum
+    content = re.sub('(<name>((<name>[^<>]+</name>)|(<operator>\.</operator>))+</name>)',
+           lambda m: re.sub('<name>[^<>]+</name>', '<name>'+char_dict['TypeName']+'</name>', m.group(0)), content) #java.com.com.com
+    content = re.sub(r'<name><name>([^<$>]*)</name>(\s*)<operator>.</operator><name>([^<$>]*)</name></name>',
+                     lambda  m: '<name><name>' + char_dict["VariableName"] + '</name>'+m.group(2)+'<operator>.</operator><name>' +
+                     char_dict["VariableName"] + '</name></name>',
+                     content);#a.b with \n
     # replace global function call (include new xxx())
     content = re.sub(r'<call><name>([^<$>]*)</name>', '<call><name>' + char_dict["FunctionName"] + '</name>', content)
 
     # replace varible in expr (i = 0)
     content = re.sub(r'<expr><name>([^<$>]*)</name>', '<expr><name>' + char_dict['VariableName'] + '</name>', content)
     content = re.sub(r'<name>([^<$>]*)</name></expr>', '<name>' + char_dict['VariableName'] + '</name></expr>', content)
+    # (tyope)
     content = re.sub(r'<operator>\(</operator><name>([^<$>]*)</name><operator>\)</operator>', '<operator>(</operator><name>'+char_dict['TypeName'] +'</name><operator>)</operator>', content)
+
+    # catch (Exception e)
+    content = re.sub(r'catch <expr_stmt><expr><operator>\(</operator><name>Exception</name> <name>[^<>]+</name><operator>\)</operator>',
+                     char_dict['catch']+ ' <expr_stmt><expr><operator>(</operator><name>'+char_dict['TypeName']+'</name> <name>'+char_dict['VariableName']+'</name><operator>)</operator>', content)
     # replace varible in  < x
-    content = re.sub(r'</operator>(\s+)<name>([^<$>]*)</name>', '</operator><name>' + char_dict['VariableName'] + '</name>', content)
+    content = re.sub(r'</operator>(\s*)<name>([^<$>]*)</name>', lambda m:'</operator>'+m.group(1)+'<name>' + char_dict['VariableName'] + '</name>', content)
     # replace throws type
     #content = re.sub(r'<expr><name>([^<$>]*)</name></expr>', '<expr><name>' + char_dict["TypeName"] + '</name></expr>',                 content)
 
@@ -362,12 +407,15 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
     #replace throws
     content = re.sub(r'<throws>throws', '<throws>'+ char_dict['throws'], content)
 
-    for k in ['if', 'else', 'for', 'while', 'throw']:
-      content = content.replace(r'<'+k+'>' + k , r'<'+k+'>'+ char_dict[k])
+    for k in ['if', 'else', 'for', 'while', 'throw', 'return']:
+      content = content.replace(r'<'+k+'>' + k , '<'+k+'>'+ char_dict[k])
+    content = content.replace('type="elseif">else if','type="elseif">'+char_dict['else'] +' '+char_dict['if'])
     for k in ['switch', 'case', 'default', 'continue', 'break']:
       content = content.replace('<' + k + '>' + k, '<' + k + '>'+ char_dict[k])
     for k in ['try', 'catch', 'finally', 'return']:
       content = re.sub('>' + k + r'(\s*)<', lambda m:'>' + char_dict[k] + m.group(1) + '<', content)
+
+    content = re.sub(r'<block>{</block>', char_dict["{"],content)
     content = re.sub(r'<block>{', '<block>' + char_dict["{"], content)
     content = re.sub(r'}</block>', char_dict["}"] + '<block>', content)
     content = re.sub(r'<import>import', '<import>'+char_dict['import'], content)
@@ -376,35 +424,6 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
     content = re.sub(r'<elseif>else', '<elseif>'+char_dict['else'], content)
     content = re.sub(r'<annotation>@((?!<annotation>).)*</annotation>', char_dict['Annotation'], content, flags=re.M|re.S)
     #顺序很重要，先替换泛型类型，避免泛型类型中的原始类型先被替换，再替换所有非空格\t的关键字，这样会先过滤掉所有自定义类型，,再转所有name里的(包括自定义类型），最后把空格\t转掉
-
-    '''
-    if not to_ascii:
-      # replace gerenic type
-      content = re.sub(
-        r'<type><name>((?!<type>).)*<argument_list((?!<type>).)*</name></type>(\s+)<name>([^d][^<$>]*)</name>',
-        lambda m: '<type><name>' + char_dict["Identifier"] + '</name></type>' + m.group(3) + '<name>' + char_dict[
-          "Identifier"] + '</name>', content)
-
-      for k,v in char_dict.items():
-        content = content.replace(r'>' + k +'<', '>' + v +'<')
-
-      # replace idenfifer
-      content = re.sub(r'<name>([^<$>,]*)</name>', '<name>' + char_dict["Identifier"] + '</name>', content)
-
-
-      #gerenic_type_reg = re.compile(r'<type><name>((?!<type>).*<argument_list(?!<type>).*)</name></type>(\s+)<name>([^d][^<$>]*)</name>')
-      #if gerenic_type_reg.search(content):
-
-      #  content = gerenic_type_reg.sub(
-      #   lambda m: '<type><name>' + XmlAscii(m.group(1)) + '</name></type>' + m.group(2) + '<name>' + Ascii(m.group(3)) + '</name>', content)
-
-      for k,v in char_dict.items():
-        content = content.replace(r'>' + k +'<', '>' + v +'<')
-
-      #replace idenfifer
-      content = re.sub(r'<name>([^<$>,]*)</name>', lambda m:'<name>'+Ascii(m.group(1))+'</name>', content)
-
-    '''
 
 
 
@@ -418,11 +437,12 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
     content = content.replace(' ', format_char_dict[' '])
     content = content.replace('\n', format_char_dict['\n'])
     content = content.replace('\t', format_char_dict['\t'])
-    content = content.replace('(', char_dict['('])
-    content = content.replace(')', char_dict[')'])
-    content = content.replace(';', char_dict[';'])
-    content = content.replace(':', char_dict[':'])
-    content = content.replace(',', char_dict[','])
+    content = content.replace('&lt;', char_dict['{'])
+    content = content.replace('&gt;', char_dict['}'])
+    for k in ['(',')',';',':','?',',','=','<','>']:
+      content = content.replace(k, char_dict[k])
+    #for k in ['{', '}']:
+    #  content = re.sub('([^$])('+k+')([^$])', lambda m:m.group(1)+char_dict[k]+m.group(3),content)
 
 
     #sorted_char_keys = sorted(char_dict, key=lambda d: len(d), reverse=True)
@@ -437,10 +457,18 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
 
     content = content.replace('}$}',',')
     content = content.replace('{${','')
+    content = content.replace('{', ochar_dict['{']+',')
+    content = content.replace('}', ochar_dict['}']+',')
+
 
     global _invalidwordreg
+    global _invalidcnt
     invalidwords = _invalidwordreg.findall(content)
     if len(invalidwords) > 0:
+      _invalidcnt = _invalidcnt + 1
+      print('invalid count:' + str(_invalidcnt))
+      if _invalidcnt == 21:
+        print('s')
       print '>>>>>>>>>>>> some invalid words: ' + str(invalidwords) + 'in file ' + file_path
     #content = _invalidwordreg.sub(char_dict['Unknown'], content)
 
@@ -493,7 +521,7 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
     output_file_object.write(output_content)
     output_file_object.close()
     print output_file_path +' written.'
-    Validate([output_file_path])
+    #Validate([output_file_path])
 
 
   print('max words count: %d' % max_words_count)
