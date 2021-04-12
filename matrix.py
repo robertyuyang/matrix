@@ -954,7 +954,6 @@ def ToMatrix(file_list, char_dict_file_path):
 
   print('max line width: %d' % max_line_width)
   print('max line count: %d' % max_line_count)
-  return
 
   for file_path in file_list:
     print(file_path)
