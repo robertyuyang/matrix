@@ -6,6 +6,8 @@ import os
 import errno
 
 
+only_java = False
+
 _input_dir = None
 _stat = None
 _javachar = None
@@ -469,7 +471,7 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
       print('invalid count:' + str(_invalidcnt))
       if _invalidcnt == 21:
         print('s')
-      print '>>>>>>>>>>>> some invalid words: ' + str(invalidwords) + 'in file ' + file_path
+      print('>>>>>>>>>>>> some invalid words: ' + str(invalidwords) + 'in file ' + file_path)
     #content = _invalidwordreg.sub(char_dict['Unknown'], content)
 
 
@@ -479,7 +481,7 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
 
     wordscnt = ItemCount(content)
     if wordscnt > max_words_count:
-      print '%s max word count %d' % (file_path, wordscnt)
+      print('%s max word count %d' % (file_path, wordscnt))
       max_words_count = wordscnt
 
 
@@ -510,7 +512,7 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
     output_content = ''
 
     if content.find('120,') != -1:
-      print 'find 120:========='+file_path
+      print('find 120:========='+file_path)
     extra_count = max_words_count - ItemCount(content)
     output_content = content + Extra(extra_count)
 
@@ -520,7 +522,7 @@ def XmlWordOnelineTransfer(file_list, char_dict_file_path):
     #output_file_object = open(output_file_path, 'w')
     output_file_object.write(output_content)
     output_file_object.close()
-    print output_file_path +' written.'
+    print(output_file_path +' written.')
     #Validate([output_file_path])
 
 
@@ -559,7 +561,7 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii, oneline=False):
 
   for file_path in file_list:
     if not file_path.endswith('.xml'):
-      print '%s not a xml' % file_path
+      print( '%s not a xml' % file_path)
       continue;
     input_file_object = open(file_path, 'r')
     content = input_file_object.read()
@@ -740,16 +742,16 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii, oneline=False):
       if len(lines) > max_line_count:
         max_line_count = len(lines)
 
-        print file_path + ' ' + str(max_line_count)
+        print( file_path + ' ' + str(max_line_count))
       for line in lines:
         if ItemCount(line) > max_line_width:
           max_line_width = ItemCount(line)
-          print '%s max line %d' % (file_path, max_line_width)
+          print('%s max line %d' % (file_path, max_line_width))
     else:
 
       wordscnt = ItemCount(content)
       if wordscnt > max_words_count:
-        print '%s max word count %d' % (file_path, wordscnt)
+        print('%s max word count %d' % (file_path, wordscnt))
         max_words_count = wordscnt
 
 
@@ -791,7 +793,7 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii, oneline=False):
         output_content += Extra(max_line_width) + '\n'
     else:
       if content.find('120,') != -1:
-        print 'id:========='+file_path
+        print('id:========='+file_path)
       extra_count = max_words_count - ItemCount(content)
       output_content = content + Extra(extra_count)
 
@@ -805,7 +807,7 @@ def XmlTransfer(file_list, char_dict_file_path, to_ascii, oneline=False):
     #output_file_object = open(output_file_path, 'w')
     output_file_object.write(output_content)
     output_file_object.close()
-    print output_file_path +' written.'
+    print(output_file_path +' written.')
     Validate([output_file_path])
 
 
@@ -885,7 +887,7 @@ def XmlElementTransfer(file_list, char_dict_file_path):
     #output_file_object_mid = open(os.path.join(dir_name , file_name + "_wordmatrix_mid.java"), 'w')
     #output_file_object_mid.write(midcontent)
 
-    print file_path + ' encoded.'
+    print(file_path + ' encoded.')
 
   for file_path in encode_file_list:
 
@@ -911,7 +913,7 @@ def XmlElementTransfer(file_list, char_dict_file_path):
     output_file_object = open(output_file_path, 'w')
     output_file_object.write(output_content)
     output_file_object.close()
-    print output_file_path + ' written.'
+    print(output_file_path + ' written.')
     Validate([output_file_path])
 
   print('max line width: %d' % max_line_width)
@@ -928,37 +930,61 @@ def ToMatrix(file_list, char_dict_file_path):
   CharDictLoadFromFile(char_dict_file_path, char_dict)
 
 
-
-  max_line_width = 305
-  max_line_count = 50
+  file_count = len(file_list)
+  max_line_width = 0
+  max_line_count = 0
+  sum_line_width = 0
+  sum_line_count = 0
 
 
   for file_path in file_list:
-    if not file_path.endswith('.java'):
+    if file_path.find('/.') != -1:
+      continue
+    if only_java and not file_path.endswith('.java'):
       continue;
 
     input_file_object = open(file_path, 'r')
 
 
     lines = input_file_object.readlines()
-    if len(lines) > max_line_count:
-      max_line_count = len(lines)
-      print '%s max line count %d' % (file_path, max_line_count)
+    file_line_count = len(lines)
+    sum_line_count = sum_line_count + file_line_count
+    if file_line_count > max_line_count:
+      max_line_count = file_line_count
+      print('%s max line count %d' % (file_path, max_line_count))
 
+    file_sum_line_width = 0
+    file_max_line_width = 0
     for line in lines:
-      if len(line) > max_line_width:
-        max_line_width = len(line)
-        print '%s max line width %d' % (file_path, max_line_width)
+      line_width = len(line)
+      file_sum_line_width = file_sum_line_width + line_width
+      if line_width > file_max_line_width:
+        file_max_line_width = line_width
+      if line_width > max_line_width:
+        max_line_width = line_width
+        print('%s max line width %d' % (file_path, max_line_width))
+    sum_line_width = sum_line_width + file_max_line_width
     input_file_object.close()
+    
+    print('{} {} * {}'.format(file_path, file_max_line_width, file_line_count ))
 
+  
+  avr_line_width = sum_line_width / file_count
+  avr_line_count = sum_line_count / file_count
+  max_line_width = 119 #avr_line_width
+  max_line_count = 576 #avr_line_count
+  
 
   print('max line width: %d' % max_line_width)
   print('max line count: %d' % max_line_count)
-  return
+  print('avr line width: %d' % avr_line_width)
+  print('avr line count: %d' % avr_line_count)
 
   for file_path in file_list:
     print(file_path)
-    if not file_path.endswith('.java'):
+    if file_path.find('/.') != -1:
+      continue
+    if only_java and not file_path.endswith('.java'):
       continue;
     input_file_object = open(file_path, 'r')
 
@@ -1077,7 +1103,7 @@ def Validate(file_list):
     global  _invalidwordreg
     ret = _invalidwordreg.findall(content)
     if len(ret) > 0:
-      print '>>>>>>>>>>>>>>>>>>>>'+file_path + ' is invalid with ' + str(ret)
+      print('>>>>>>>>>>>>>>>>>>>>'+file_path + ' is invalid with ' + str(ret))
       exit()
 
 if (__name__ == '__main__'):
@@ -1103,7 +1129,7 @@ if (__name__ == '__main__'):
   elif _xmlelement:
     XmlElementTransfer(file_list, 'element.txt')
   elif _validate:
-    print "---------VALIDATE-------------"
+    print("---------VALIDATE-------------")
     Validate(file_list)
     #re.sub(r'<([^<>]*)>', '', content)
 
